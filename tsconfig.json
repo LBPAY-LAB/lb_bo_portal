@@ -55,7 +55,8 @@
       "@/utils/*": ["./src/utils/*"],
       "@/config/*": ["./src/config/*"],
       "@/app/*": ["./src/app/*"],
-      "@/payload/*": ["./src/payload/*"]
+      "@/payload/*": ["./src/payload/*"],
+      "@payload-config": ["./src/payload.config.ts"]
     },
     "plugins": [
       {
