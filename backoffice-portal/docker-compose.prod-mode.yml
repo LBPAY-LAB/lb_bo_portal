@@ -22,12 +22,19 @@ services:
       timeout: 5s
       retries: 5
 
-  # Keycloak - OAuth2/OIDC Provider
+  # Keycloak - OAuth2/OIDC Provider (PRODUCTION MODE)
   keycloak:
     image: quay.io/keycloak/keycloak:23.0
     container_name: portal_keycloak
     restart: unless-stopped
-    command: start-dev
+    command:
+      - start
+      - --hostname=localhost
+      - --hostname-port=8081
+      - --hostname-strict=false
+      - --hostname-strict-https=false
+      - --http-enabled=true
+      - --proxy=edge
     environment:
       # Admin credentials
       KEYCLOAK_ADMIN: admin
@@ -40,23 +47,9 @@ services:
       KC_DB_PASSWORD: portal_dev_pass
       KC_DB_SCHEMA: public
 
-      # Hostname
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 8080
-      KC_HOSTNAME_STRICT: 'false'
-      KC_HOSTNAME_STRICT_HTTPS: 'false'
-
-      # HTTP settings
-      KC_HTTP_ENABLED: 'true'
-      KC_HTTP_PORT: 8080
-
-      # Proxy settings (for reverse proxy)
-      KC_PROXY: edge
-
-      # Fix for "3rd party check iframe" timeout error
-      KC_SPI_LOGIN_PROTOCOL_OPENID_CONNECT_LEGACY_LOGOUT_REDIRECT_URI: 'true'
-      KC_SPI_TRUSTSTORE_FILE_FILE: ''
-      KC_SPI_TRUSTSTORE_FILE_PASSWORD: ''
+      # Production mode requires these
+      KC_HEALTH_ENABLED: 'true'
+      KC_METRICS_ENABLED: 'true'
     ports:
       - '8081:8080'
     networks:

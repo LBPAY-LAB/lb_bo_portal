@@ -67,15 +67,17 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    roles: Role;
+    'user-invitations': UserInvitation;
     users: User;
     media: Media;
     applications: Application;
     'menu-items': MenuItem;
-    roles: Role;
     permissions: Permission;
     'audit-logs': AuditLog;
     notifications: Notification;
     'api-keys': ApiKey;
+    'email-templates': EmailTemplate;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -83,15 +85,17 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
+    roles: RolesSelect<false> | RolesSelect<true>;
+    'user-invitations': UserInvitationsSelect<false> | UserInvitationsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     applications: ApplicationsSelect<false> | ApplicationsSelect<true>;
     'menu-items': MenuItemsSelect<false> | MenuItemsSelect<true>;
-    roles: RolesSelect<false> | RolesSelect<true>;
     permissions: PermissionsSelect<false> | PermissionsSelect<true>;
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'api-keys': ApiKeysSelect<false> | ApiKeysSelect<true>;
+    'email-templates': EmailTemplatesSelect<false> | EmailTemplatesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -132,45 +136,6 @@ export interface UserAuthOperations {
     email: string;
     password: string;
   };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: number;
-  /**
-   * Full name from Keycloak
-   */
-  name?: string | null;
-  /**
-   * Keycloak user ID (sub claim) for shadow user sync
-   */
-  keycloak_sub?: string | null;
-  /**
-   * User roles for RBAC
-   */
-  roles?: (number | Role)[] | null;
-  updatedAt: string;
-  createdAt: string;
-  /**
-   * Email from Keycloak
-   */
-  email?: string | null;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
 }
 /**
  * Role-Based Access Control (RBAC) roles
@@ -288,6 +253,120 @@ export interface Permission {
   active?: boolean | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * Email-based user invitations with time-limited tokens
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-invitations".
+ */
+export interface UserInvitation {
+  id: number;
+  /**
+   * Email address of invited user (one active invitation per email)
+   */
+  email: string;
+  /**
+   * Full name of invited user
+   */
+  name: string;
+  /**
+   * Roles to assign when user accepts invitation
+   */
+  roles: (number | Role)[];
+  /**
+   * Secure random token (auto-generated)
+   */
+  token: string;
+  /**
+   * Invitation status
+   */
+  status: 'pending' | 'accepted' | 'expired' | 'cancelled';
+  /**
+   * Invitation expires 48 hours after creation
+   */
+  expiresAt: string;
+  /**
+   * Admin who sent the invitation
+   */
+  invitedBy: number | User;
+  /**
+   * When user accepted invitation
+   */
+  acceptedAt?: string | null;
+  /**
+   * Additional metadata (IP, user-agent, etc.)
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  /**
+   * Full name from Keycloak
+   */
+  name?: string | null;
+  /**
+   * Keycloak user ID (sub claim) for shadow user sync
+   */
+  keycloak_sub?: string | null;
+  /**
+   * User roles for RBAC
+   */
+  roles?: (number | Role)[] | null;
+  /**
+   * How the user was created
+   */
+  userType: 'keycloak_sso' | 'portal_managed' | 'invited';
+  /**
+   * Original invitation (if created via invitation)
+   */
+  invitationId?: (number | null) | UserInvitation;
+  /**
+   * Synced from Keycloak OTP configuration
+   */
+  twoFactorEnabled?: boolean | null;
+  /**
+   * Last successful login
+   */
+  lastLoginAt?: string | null;
+  /**
+   * User account status
+   */
+  status: 'active' | 'inactive' | 'suspended' | 'pending';
+  updatedAt: string;
+  createdAt: string;
+  /**
+   * Email from Keycloak
+   */
+  email?: string | null;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -647,6 +726,69 @@ export interface ApiKey {
   createdAt: string;
 }
 /**
+ * Email templates with dynamic variables ({{username}}, {{invitationLink}}, etc.)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-templates".
+ */
+export interface EmailTemplate {
+  id: number;
+  /**
+   * Template display name (e.g., User Invitation Email)
+   */
+  name: string;
+  /**
+   * Template identifier used in code (e.g., user_invitation, welcome, password_reset)
+   */
+  slug: string;
+  /**
+   * System templates cannot be deleted
+   */
+  type: 'system' | 'custom';
+  /**
+   * Email subject line (supports variables: {{username}}, {{portalName}})
+   */
+  subject: string;
+  /**
+   * HTML email body with variable support
+   */
+  htmlBody: string;
+  /**
+   * Plain text version (fallback for email clients without HTML support)
+   */
+  textBody?: string | null;
+  /**
+   * Available variables for this template
+   */
+  availableVariables?:
+    | {
+        variable: string;
+        description: string;
+        example?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Enable/disable template
+   */
+  active?: boolean | null;
+  category: 'user_management' | 'notifications' | 'security' | 'system';
+  /**
+   * Additional metadata (sender, reply-to, etc.)
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -671,6 +813,14 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
+        relationTo: 'roles';
+        value: number | Role;
+      } | null)
+    | ({
+        relationTo: 'user-invitations';
+        value: number | UserInvitation;
+      } | null)
+    | ({
         relationTo: 'users';
         value: number | User;
       } | null)
@@ -687,10 +837,6 @@ export interface PayloadLockedDocument {
         value: number | MenuItem;
       } | null)
     | ({
-        relationTo: 'roles';
-        value: number | Role;
-      } | null)
-    | ({
         relationTo: 'permissions';
         value: number | Permission;
       } | null)
@@ -705,6 +851,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'api-keys';
         value: number | ApiKey;
+      } | null)
+    | ({
+        relationTo: 'email-templates';
+        value: number | EmailTemplate;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -750,12 +900,52 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "roles_select".
+ */
+export interface RolesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  description?: T;
+  type?: T;
+  permissions?: T;
+  inheritsFrom?: T;
+  priority?: T;
+  active?: T;
+  usersCount?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-invitations_select".
+ */
+export interface UserInvitationsSelect<T extends boolean = true> {
+  email?: T;
+  name?: T;
+  roles?: T;
+  token?: T;
+  status?: T;
+  expiresAt?: T;
+  invitedBy?: T;
+  acceptedAt?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   keycloak_sub?: T;
   roles?: T;
+  userType?: T;
+  invitationId?: T;
+  twoFactorEnabled?: T;
+  lastLoginAt?: T;
+  status?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -853,24 +1043,6 @@ export interface MenuItemsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "roles_select".
- */
-export interface RolesSelect<T extends boolean = true> {
-  name?: T;
-  slug?: T;
-  description?: T;
-  type?: T;
-  permissions?: T;
-  inheritsFrom?: T;
-  priority?: T;
-  active?: T;
-  usersCount?: T;
-  metadata?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "permissions_select".
  */
 export interface PermissionsSelect<T extends boolean = true> {
@@ -953,6 +1125,31 @@ export interface ApiKeysSelect<T extends boolean = true> {
   expiresAt?: T;
   lastUsedAt?: T;
   usageCount?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-templates_select".
+ */
+export interface EmailTemplatesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  type?: T;
+  subject?: T;
+  htmlBody?: T;
+  textBody?: T;
+  availableVariables?:
+    | T
+    | {
+        variable?: T;
+        description?: T;
+        example?: T;
+        id?: T;
+      };
+  active?: T;
+  category?: T;
   metadata?: T;
   updatedAt?: T;
   createdAt?: T;

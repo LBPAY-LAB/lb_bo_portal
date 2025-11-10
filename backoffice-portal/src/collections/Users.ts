@@ -116,5 +116,59 @@ export const Users: CollectionConfig = {
         description: 'User roles for RBAC',
       },
     },
+    {
+      name: 'userType',
+      type: 'select',
+      required: true,
+      defaultValue: 'keycloak_sso',
+      options: [
+        { label: 'Keycloak SSO', value: 'keycloak_sso' },
+        { label: 'Portal Managed', value: 'portal_managed' },
+        { label: 'Invited', value: 'invited' },
+      ],
+      admin: {
+        description: 'How the user was created',
+      },
+    },
+    {
+      name: 'invitationId',
+      type: 'relationship',
+      relationTo: 'user-invitations',
+      admin: {
+        description: 'Original invitation (if created via invitation)',
+      },
+    },
+    {
+      name: 'twoFactorEnabled',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: 'Synced from Keycloak OTP configuration',
+        readOnly: true,
+      },
+    },
+    {
+      name: 'lastLoginAt',
+      type: 'date',
+      admin: {
+        description: 'Last successful login',
+        readOnly: true,
+      },
+    },
+    {
+      name: 'status',
+      type: 'select',
+      required: true,
+      defaultValue: 'active',
+      options: [
+        { label: 'Active', value: 'active' },
+        { label: 'Inactive', value: 'inactive' },
+        { label: 'Suspended', value: 'suspended' },
+        { label: 'Pending Activation', value: 'pending' },
+      ],
+      admin: {
+        description: 'User account status',
+      },
+    },
   ],
 }

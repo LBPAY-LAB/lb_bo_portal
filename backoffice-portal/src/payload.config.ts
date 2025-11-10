@@ -16,6 +16,8 @@ import { Roles } from './collections/Roles'
 import { Permissions } from './collections/Permissions'
 import { Notifications } from './collections/Notifications'
 import { ApiKeys } from './collections/ApiKeys'
+import { EmailTemplates } from './collections/EmailTemplates'
+import { UserInvitations } from './collections/UserInvitations'
 import { usersMeEndpoint } from './endpoints/users-me'
 
 const filename = fileURLToPath(import.meta.url)
@@ -35,15 +37,17 @@ export default buildConfig({
     },
   },
   collections: [
+    Roles,           // Referenced by Users, UserInvitations
+    UserInvitations, // Referenced by Users
     Users,
     Media,
     Applications,
     MenuItems,
-    Roles,
     Permissions,
     AuditLogs,
     Notifications,
     ApiKeys,
+    EmailTemplates,
   ],
   globals: [PortalSettings],
   endpoints: [usersMeEndpoint],
