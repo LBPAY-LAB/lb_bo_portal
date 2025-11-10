@@ -1,0 +1,77 @@
+# ===================================================================
+# LB Portal Container - Git Ignore
+# ===================================================================
+
+# Environment Variables (NEVER COMMIT!)
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Docker Volumes (Local Data)
+postgres_data/
+keycloak_data/
+redis_data/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# PayloadCMS
+.payload/
+uploads/
+public/media/
+
+# Logs
+logs/
+*.log
+
+# OS Files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.sublime-*
+
+# Test Coverage
+coverage/
+.nyc_output/
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
+
+# Database Backups
+*.sql
+*.dump
+backups/
+
+# SSL Certificates (if local)
+*.pem
+*.key
+*.crt
+
+# Cloud Provider Credentials
+aws-credentials.json
+gcp-credentials.json
+azure-credentials.json
