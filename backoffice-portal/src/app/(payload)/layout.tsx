@@ -8,8 +8,8 @@ import React from 'react'
 
 import { importMap } from './admin/importMap.js'
 import { AuthInterceptorProvider } from '@/providers/AuthInterceptorProvider'
-import './custom.scss'
-import '../globals.css'
+// Removido custom.scss e globals.css para não interferir nos estilos do PayloadCMS
+// O PayloadCMS já importa seus próprios estilos via '@payloadcms/next/css'
 
 type Args = {
   children: React.ReactNode
