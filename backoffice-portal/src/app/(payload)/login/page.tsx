@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Lock, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +13,40 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [portalName, setPortalName] = useState('Portal')
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+
+  // Fetch portal settings on mount
+  useEffect(() => {
+    async function fetchPortalSettings() {
+      try {
+        const response = await fetch('/api/globals/portal-settings')
+        if (response.ok) {
+          const data = await response.json()
+
+          if (data.portalName) {
+            setPortalName(data.portalName)
+          }
+
+          if (data.logo) {
+            let url: string | null = null
+            if (typeof data.logo === 'object' && 'url' in data.logo) {
+              url = data.logo.url as string
+            } else if (typeof data.logo === 'string') {
+              url = data.logo
+            }
+            if (url) {
+              setLogoUrl(url)
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch portal settings:', error)
+      }
+    }
+
+    fetchPortalSettings()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,35 +54,33 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      // 1. Authenticate with Keycloak
-      const keycloakResponse = await fetch('/api/auth/keycloak/login', {
+      // Authenticate with PayloadCMS local auth (NOT Keycloak)
+      // This calls the built-in PayloadCMS login endpoint
+      const response = await fetch('/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          email: username,  // PayloadCMS expects 'email', not 'username'
+          password
+        }),
         credentials: 'include',
       })
 
-      const keycloakData = await keycloakResponse.json()
+      const data = await response.json()
 
-      if (!keycloakResponse.ok) {
-        throw new Error(keycloakData.error || 'Falha na autenticação')
+      if (!response.ok) {
+        throw new Error(data.errors?.[0]?.message || data.message || 'Falha na autenticação')
       }
 
-      // 2. Store Keycloak tokens for the AuthInterceptor
-      if (keycloakData.access_token) {
-        sessionStorage.setItem('keycloak_token', keycloakData.access_token)
-        if (keycloakData.refresh_token) {
-          sessionStorage.setItem('keycloak_refresh_token', keycloakData.refresh_token)
-        }
-        console.log('✅ Keycloak tokens stored in sessionStorage')
-      }
+      // Login succeeded, PayloadCMS session cookie is set automatically
+      console.log('✅ Login successful:', data.message)
 
-      // 3. Login succeeded, PayloadCMS session should be created via cookie
-      // Redirect directly to admin
+      // Redirect to admin dashboard
       window.location.href = '/admin'
     } catch (err) {
+      console.error('❌ Login error:', err)
       setError(err instanceof Error ? err.message : 'Erro ao fazer login')
       setLoading(false)
     }
@@ -59,10 +91,20 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
         <div className="text-center">
-          <div className="mx-auto w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mb-4 shadow-lg">
-            <Lock className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">LBPay Portal</h1>
+          {logoUrl ? (
+            <div className="mx-auto mb-4 flex justify-center">
+              <img
+                src={logoUrl}
+                alt={`${portalName} Logo`}
+                className="h-20 w-auto object-contain"
+              />
+            </div>
+          ) : (
+            <div className="mx-auto w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mb-4 shadow-lg">
+              <Lock className="w-8 h-8 text-white" />
+            </div>
+          )}
+          <h1 className="text-3xl font-bold text-gray-900">{portalName}</h1>
           <p className="text-gray-600 mt-2">Sistema de Gestão</p>
         </div>
 
@@ -128,7 +170,7 @@ export default function LoginPage() {
                   Ambiente de Desenvolvimento
                 </p>
                 <p className="text-xs text-blue-700 font-mono">
-                  Usuário: <strong>jose.silva</strong> | Senha: <strong>Test@123</strong>
+                  Usuário: <strong>superadmin@lbpay.dev</strong> | Senha: <strong>Test@123</strong>
                 </p>
               </div>
             </div>
@@ -136,7 +178,9 @@ export default function LoginPage() {
         </Card>
 
         {/* Footer */}
-        <p className="text-center text-sm text-gray-500">© 2025 LBPay. Todos os direitos reservados.</p>
+        <p className="text-center text-sm text-gray-500">
+          © {new Date().getFullYear()} {portalName}. Todos os direitos reservados.
+        </p>
       </div>
     </div>
   )

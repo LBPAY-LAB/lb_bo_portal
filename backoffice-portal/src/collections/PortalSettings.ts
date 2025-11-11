@@ -1,4 +1,5 @@
-import type { GlobalConfig } from 'payload'
+import type { GlobalConfig} from 'payload'
+import { requirePermission } from '@/lib/permissions'
 
 export const PortalSettings: GlobalConfig = {
   slug: 'portal-settings',
@@ -7,8 +8,16 @@ export const PortalSettings: GlobalConfig = {
     description: 'Global portal configuration (branding, i18n, themes)',
   },
   access: {
-    read: () => true,
-    update: ({ req: { user } }) => !!user,
+    read: () => true, // Leitura pública
+    update: ({ req }) => {
+      // Allow SuperAdmin to bypass permission check
+      const user = req.user
+      if (user?.email && typeof user.email === 'string' && user.email.startsWith('superadmin@')) {
+        return true
+      }
+      // For other users, check permissions
+      return requirePermission('portal_settings', 'update')({ req })
+    },
   },
   fields: [
     {
@@ -142,6 +151,81 @@ export const PortalSettings: GlobalConfig = {
         {
           label: 'Security',
           fields: [
+            {
+              name: 'iamProvider',
+              type: 'select',
+              required: true,
+              defaultValue: 'keycloak',
+              options: [
+                { label: 'Keycloak (SSO)', value: 'keycloak' },
+                { label: 'Local (Portal)', value: 'local' },
+              ],
+              admin: {
+                description:
+                  'IAM Provider - Keycloak = apenas roles/users sincronizados; Local = gestão no portal',
+              },
+            },
+            {
+              name: 'keycloakConfig',
+              type: 'group',
+              admin: {
+                description: 'Configuração do servidor Keycloak (editável pelo portal)',
+                condition: (data) => data.iamProvider === 'keycloak',
+              },
+              fields: [
+                {
+                  name: 'baseUrl',
+                  type: 'text',
+                  required: false,
+                  defaultValue: process.env.KEYCLOAK_BASE_URL || 'http://localhost:8080',
+                  admin: {
+                    description: 'Keycloak server URL (ex: https://auth.empresa.com)',
+                    placeholder: 'http://localhost:8080',
+                  },
+                },
+                {
+                  name: 'realm',
+                  type: 'text',
+                  required: false,
+                  defaultValue: process.env.KEYCLOAK_REALM || 'lbportal',
+                  admin: {
+                    description: 'Keycloak realm name',
+                    placeholder: 'lbportal',
+                  },
+                },
+                {
+                  name: 'clientId',
+                  type: 'text',
+                  required: false,
+                  defaultValue: process.env.KEYCLOAK_CLIENT_ID || 'portal-admin',
+                  admin: {
+                    description: 'Service account client ID',
+                    placeholder: 'portal-admin',
+                  },
+                },
+                {
+                  name: 'clientSecret',
+                  type: 'text',
+                  required: false,
+                  admin: {
+                    description: 'Service account client secret (criptografado)',
+                    placeholder: '••••••••••••••••',
+                    components: {
+                      Field: '@/components/admin/SecretField#SecretField',
+                    },
+                  },
+                },
+                {
+                  name: 'connectionStatus',
+                  type: 'ui',
+                  admin: {
+                    components: {
+                      Field: '@/components/admin/KeycloakConnectionTest#KeycloakConnectionTest',
+                    },
+                  },
+                },
+              ],
+            },
             {
               name: 'sessionTimeout',
               type: 'number',
